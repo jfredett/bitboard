@@ -1,0 +1,16 @@
+language: rust
+dist: trusty
+addons:
+  apt:
+    packages:
+      - libssl-dev
+rust:
+  - nightly
+script:
+  - cargo clean
+  - cargo build
+  - cargo test
+after_success: |
+  bash <(curl https://raw.githubusercontent.com/xd009642/tarpaulin/master/travis-install.sh)
+  cargo tarpaulin --ciserver travis-ci --coveralls $TRAVIS_JOB_ID
+
