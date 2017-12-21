@@ -1,5 +1,9 @@
 #![feature(unique, alloc, heap_api, allocator_api)]
 
+//! Bitboard, compile-time-sized, typesafe, low level bitboards for Rust.
+//!
+//!
+
 #![recursion_limit="256"]
 extern crate typenum;
 
@@ -27,9 +31,23 @@ use typenum::marker_traits::*;
 /// There are no aliases provided, but I suggest you create one for whatever application you have.
 /// Something like:
 ///
-/// `type Bitboard = bitboard::Bitboard<U{YourSize}, u{YourAlignment}>`
+/// ```
+/// extern crate typenum;
+/// extern crate bitboard;
+///
+/// use typenum::consts::U8;
+/// use bitboard::Bitboard;
+///
+/// type Chessboard = bitboard::Bitboard<U8, u64>;
+///
+/// fn main() {
+///     let cc : Chessboard = Bitboard::new();
+///     // ...
+/// }
+/// ```
 ///
 /// Will save a lot of typing and will also probably prevent screwups.
+///
 pub struct Bitboard<N: Unsigned, A : Sized> {
     ptr: *mut u8,
     offset: usize,
@@ -47,6 +65,20 @@ type BitboardResult<N> = Result<N, BitboardError>;
 
 impl<N : Unsigned, A : Sized> Bitboard<N,A> {
     /// Construct a new, blank bitboard of size NxN with alignment A
+    ///
+    /// # Examples
+    /// ```
+    ///    extern crate typenum;
+    ///    extern crate bitboard;
+    ///
+    ///    use typenum::consts::U8;
+    ///    use bitboard::Bitboard;
+    ///
+    ///    fn main() {
+    ///        let bb = Bitboard::<U8,u64>::new();
+    ///        // ...
+    ///    }
+    /// ```
     pub fn new() -> Bitboard<N, A> {
         let layout = Self::layout();
         let ptr;
@@ -180,7 +212,7 @@ impl<N : Unsigned, A : Sized> Bitboard<N,A> {
 impl<N : Unsigned, A : Sized> Drop for Bitboard<N,A> {
     fn drop(&mut self) {
         let layout = Self::layout();
-        unsafe { Heap.dealloc(self.ptr, layout); }
+        unsafe { Heap.dealloc(self.ptr as *mut _, layout); }
     }
 }
 
