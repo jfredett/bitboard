@@ -86,7 +86,7 @@ impl<N : Unsigned, A : Sized> Bitboard<N,A> {
         let ptr;
 
         unsafe {
-            match Heap.alloc(layout) {
+            match Heap.alloc_zeroed(layout) {
                 Ok(p) => ptr = p,
                 Err(e) => panic!("Failed to allocate bitboard! {}", e)
             }
@@ -567,18 +567,3 @@ mod test {
         }
     }
 }
-
-
-        //#[test]
-        //fn index_in_bounds() {
-            //// TODO: Set a bit, then check the index to make sure it's set.
-            //let tt = tic_tac_toe_board();
-            ////assert_eq!(*tt[(0,0)], 0);
-        //}
-
-        //#[test]
-        //#[should_panic]
-        //fn index_out_of_bounds() {
-            //let tt = tic_tac_toe_board();
-            ////assert_eq!(*tt[(3,0)], 0);
-        //}
