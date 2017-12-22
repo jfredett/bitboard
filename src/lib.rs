@@ -381,7 +381,7 @@ impl<N : Unsigned> ops::BitAnd for Bitboard<N> {
         // we know the sizes are the same because `N` is the same, and `A` is the same
         for amt in 0..(Self::size() as isize) {
             unsafe {
-                *new_bb.ptr.offset(amt) =  (*self.ptr.offset(amt)) & (*other.ptr.offset(amt))
+                *new_bb.ptr.offset(amt) = (*self.ptr.offset(amt)) & (*other.ptr.offset(amt))
             }
         }
         return new_bb
@@ -877,7 +877,7 @@ mod benches {
 
 
         #[bench]
-        fn intersection_large(b: &mut Bencher) {
+        fn large(b: &mut Bencher) {
             let bb1 = &test::black_box(prepped_go_board());
             let bb2 = &test::black_box(prepped_go_board());
             b.iter(|| {
@@ -886,7 +886,7 @@ mod benches {
         }
 
         #[bench]
-        fn intersection_medium(b: &mut Bencher) {
+        fn medium(b: &mut Bencher) {
             let bb1 = &test::black_box(prepped_chess_board());
             let bb2 = &test::black_box(prepped_chess_board());
             b.iter(|| {
@@ -895,11 +895,73 @@ mod benches {
         }
 
         #[bench]
-        fn intersection_small(b: &mut Bencher) {
+        fn small(b: &mut Bencher) {
             let bb1 = &test::black_box(prepped_ttt_board());
             let bb2 = &test::black_box(prepped_ttt_board());
             b.iter(|| {
                 bb1.to_owned() == bb2.to_owned()
+            });
+        }
+    }
+
+    mod bitxor {
+        use super::*;
+
+        #[bench]
+        fn large(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_go_board());
+            let bb2 = &test::black_box(prepped_go_board());
+            b.iter(|| {
+                bb1.to_owned() ^ bb2.to_owned()
+            });
+        }
+
+        #[bench]
+        fn medium(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_chess_board());
+            let bb2 = &test::black_box(prepped_chess_board());
+            b.iter(|| {
+                bb1.to_owned() ^ bb2.to_owned()
+            });
+        }
+
+        #[bench]
+        fn small(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_ttt_board());
+            let bb2 = &test::black_box(prepped_ttt_board());
+            b.iter(|| {
+                bb1.to_owned() ^ bb2.to_owned()
+            });
+        }
+    }
+
+    mod bitor {
+        use super::*;
+
+        #[bench]
+        fn large(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_go_board());
+            let bb2 = &test::black_box(prepped_go_board());
+            b.iter(|| {
+                bb1.to_owned() | bb2.to_owned()
+            });
+        }
+
+        #[bench]
+        fn medium(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_chess_board());
+            let bb2 = &test::black_box(prepped_chess_board());
+            b.iter(|| {
+                bb1.to_owned() | bb2.to_owned()
+            });
+        }
+
+        #[bench]
+        fn small(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_ttt_board());
+            let bb2 = &test::black_box(prepped_ttt_board());
+            b.iter(|| {
+                bb1.to_owned() | bb2.to_owned()
             });
         }
     }
@@ -907,9 +969,8 @@ mod benches {
     mod bitand {
         use super::*;
 
-
         #[bench]
-        fn intersection_large(b: &mut Bencher) {
+        fn large(b: &mut Bencher) {
             let bb1 = &test::black_box(prepped_go_board());
             let bb2 = &test::black_box(prepped_go_board());
             b.iter(|| {
@@ -918,7 +979,7 @@ mod benches {
         }
 
         #[bench]
-        fn intersection_medium(b: &mut Bencher) {
+        fn medium(b: &mut Bencher) {
             let bb1 = &test::black_box(prepped_chess_board());
             let bb2 = &test::black_box(prepped_chess_board());
             b.iter(|| {
@@ -927,7 +988,7 @@ mod benches {
         }
 
         #[bench]
-        fn intersection_small(b: &mut Bencher) {
+        fn small(b: &mut Bencher) {
             let bb1 = &test::black_box(prepped_ttt_board());
             let bb2 = &test::black_box(prepped_ttt_board());
             b.iter(|| {
@@ -935,5 +996,34 @@ mod benches {
             });
         }
     }
+
+    mod clone {
+        use super::*;
+
+        #[bench]
+        fn large(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_go_board());
+            b.iter(|| {
+                bb1.clone()
+            });
+        }
+
+        #[bench]
+        fn medium(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_chess_board());
+            b.iter(|| {
+                bb1.clone()
+            });
+        }
+
+        #[bench]
+        fn small(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_ttt_board());
+            b.iter(|| {
+                bb1.clone()
+            });
+        }
+    }
+
 }
 

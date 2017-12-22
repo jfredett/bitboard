@@ -14,14 +14,14 @@ static A: System = System;
 use bitboard::Bitboard;
 use typenum::consts::*;
 
+
+// TODO: need a suite of tests in here that illustrate normal use, for valgrinding purposes.
+
 mod memory_allocation {
     use super::*;
 
     #[test]
     fn alloc() {
         let bb = Bitboard::<U20>::new();
-        for byte in bb {
-            assert_eq!(byte, 0);
-        }
     }
 }
