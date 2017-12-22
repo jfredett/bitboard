@@ -440,6 +440,17 @@ impl<N : Unsigned> ops::BitXor for Bitboard<N> {
     }
 }
 
+impl<N : Unsigned> ops::BitXorAssign for Bitboard<N> {
+    fn bitxor_assign(&mut self, other: Bitboard<N>) {
+        // we know the sizes are the same because `N` is the same, and `A` is the same
+        for amt in 0..(Self::size() as isize) {
+            unsafe {
+                *self.ptr.offset(amt) ^= *other.ptr.offset(amt)
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 #[allow(unused_must_use)]
 mod tests {
@@ -471,7 +482,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn is_union() {
+        fn disjoint_sum() {
             // 100
             // 010
             // 001
@@ -501,6 +512,41 @@ mod tests {
             expected.set(2,0);
 
             assert_eq!(bb1 ^ bb2, expected);
+        }
+
+        #[test]
+        fn disjoint_sum_happens_during_assign() {
+            // 100
+            // 010
+            // 001
+            let mut bb1 = tic_tac_toe_board();
+
+            // 001
+            // 010
+            // 100
+            let mut bb2 = tic_tac_toe_board();
+
+            // 101
+            // 000
+            // 101
+            let mut expected = tic_tac_toe_board();
+
+            bb1.set(0,0);
+            bb1.set(1,1);
+            bb1.set(2,2);
+
+            bb2.set(0,2);
+            bb2.set(1,1);
+            bb2.set(2,0);
+
+            expected.set(0,0);
+            expected.set(2,2);
+            expected.set(0,2);
+            expected.set(2,0);
+
+            bb1 ^= bb2;
+
+            assert_eq!(bb1, expected);
         }
 
         #[test]
@@ -993,6 +1039,44 @@ mod benches {
             });
         }
     }
+
+    mod bitxor_assign {
+        use super::*;
+
+        #[bench]
+        fn large(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_go_board());
+            let bb2 = &test::black_box(prepped_go_board());
+            b.iter(|| {
+                let mut a = bb1.to_owned();
+                let b = bb2.to_owned();
+                a ^= b
+            });
+        }
+
+        #[bench]
+        fn medium(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_chess_board());
+            let bb2 = &test::black_box(prepped_chess_board());
+            b.iter(|| {
+                let mut a = bb1.to_owned();
+                let b = bb2.to_owned();
+                a ^= b
+            });
+        }
+
+        #[bench]
+        fn small(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_ttt_board());
+            let bb2 = &test::black_box(prepped_ttt_board());
+            b.iter(|| {
+                let mut a = bb1.to_owned();
+                let b = bb2.to_owned();
+                a ^= b
+            });
+        }
+    }
+
 
     mod bitxor {
         use super::*;
