@@ -388,6 +388,35 @@ impl<N : Unsigned> ops::BitAnd for Bitboard<N> {
     }
 }
 
+impl<N : Unsigned> ops::BitOr for Bitboard<N> {
+    type Output = Bitboard<N>;
+
+    fn bitor(self, other: Bitboard<N>) -> Bitboard<N> {
+        let new_bb : Bitboard<N> = Bitboard::new();
+        // we know the sizes are the same because `N` is the same, and `A` is the same
+        for amt in 0..(Self::size() as isize) {
+            unsafe {
+                *new_bb.ptr.offset(amt) = (*self.ptr.offset(amt)) | (*other.ptr.offset(amt))
+            }
+        }
+        return new_bb
+    }
+}
+
+impl<N : Unsigned> ops::BitXor for Bitboard<N> {
+    type Output = Bitboard<N>;
+
+    fn bitxor(self, other: Bitboard<N>) -> Bitboard<N> {
+        let new_bb : Bitboard<N> = Bitboard::new();
+        // we know the sizes are the same because `N` is the same, and `A` is the same
+        for amt in 0..(Self::size() as isize) {
+            unsafe {
+                *new_bb.ptr.offset(amt) = (*self.ptr.offset(amt)) ^ (*other.ptr.offset(amt))
+            }
+        }
+        return new_bb
+    }
+}
 
 #[cfg(test)]
 #[allow(unused_must_use)]
@@ -414,6 +443,112 @@ mod tests {
             assert_eq!(bb1, bb2);
         }
 
+    }
+
+    mod bitxor {
+        use super::*;
+
+        #[test]
+        fn is_union() {
+            // 100
+            // 010
+            // 001
+            let mut bb1 = tic_tac_toe_board();
+
+            // 001
+            // 010
+            // 100
+            let mut bb2 = tic_tac_toe_board();
+
+            // 101
+            // 000
+            // 101
+            let mut expected = tic_tac_toe_board();
+
+            bb1.set(0,0);
+            bb1.set(1,1);
+            bb1.set(2,2);
+
+            bb2.set(0,2);
+            bb2.set(1,1);
+            bb2.set(2,0);
+
+            expected.set(0,0);
+            expected.set(2,2);
+            expected.set(0,2);
+            expected.set(2,0);
+
+            assert_eq!(bb1 ^ bb2, expected);
+        }
+
+        #[test]
+        fn self_inverse() {
+            let mut bb1 = go_board();
+            let expected = Bitboard::new();
+
+            assert_eq!(bb1.clone() ^ bb1.clone(), expected);
+
+            bb1.set(1,2);
+
+            assert_eq!(bb1.clone() ^ bb1.clone(), expected);
+
+            bb1.set(10,2);
+
+            assert_eq!(bb1.clone() ^ bb1.clone(), expected);
+        }
+    }
+
+    mod bitor {
+        use super::*;
+
+        #[test]
+        fn is_union() {
+            // 100
+            // 010
+            // 001
+            let mut bb1 = tic_tac_toe_board();
+
+            // 001
+            // 010
+            // 100
+            let mut bb2 = tic_tac_toe_board();
+
+            // 101
+            // 010
+            // 101
+            let mut expected = tic_tac_toe_board();
+
+            bb1.set(0,0);
+            bb1.set(1,1);
+            bb1.set(2,2);
+
+            bb2.set(0,2);
+            bb2.set(1,1);
+            bb2.set(2,0);
+
+            expected.set(0,0);
+            expected.set(1,1);
+            expected.set(2,2);
+            expected.set(0,2);
+            expected.set(2,0);
+
+            assert_eq!(bb1 | bb2, expected);
+        }
+
+        #[test]
+        fn has_identity() {
+            let mut bb1 = go_board();
+
+            assert_eq!(bb1.clone() | bb1.clone(), bb1.clone());
+
+            bb1.set(1,2);
+
+            assert_eq!(bb1.clone() | bb1.clone(), bb1.clone());
+
+            bb1.set(10,2);
+
+            assert_eq!(bb1.clone() | bb1.clone(), bb1.clone());
+        }
     }
 
     mod bitand {
