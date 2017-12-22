@@ -44,7 +44,6 @@ use typenum::marker_traits::*;
 ///
 pub struct Bitboard<N: Unsigned> {
     ptr: *mut u8,
-    offset: usize,
     typenum: PhantomData<N>,
 }
 
@@ -85,7 +84,6 @@ impl<N : Unsigned> Bitboard<N> {
 
         Bitboard {
             ptr: ptr,
-            offset: 0,
             typenum: PhantomData
         }
     }
@@ -314,24 +312,6 @@ impl<N : Unsigned> Drop for Bitboard<N> {
     fn drop(&mut self) {
         let layout = Self::layout();
         unsafe { Heap.dealloc(self.ptr as *mut _, layout); }
-    }
-}
-
-impl<N : Unsigned> Iterator for Bitboard<N> {
-    type Item = u8;
-
-    /// Iterates over bytes of the bitboard, not individual bits.
-    /// making implementing comparisons across the whole bitboard easy.
-    fn next(&mut self) -> Option<u8> {
-        if self.offset == Self::size() {
-            None
-        } else {
-            unsafe { 
-                let ret = *self.ptr.offset(self.offset as isize);
-                self.offset += 1;
-                Some(ret)
-            }
-        }
     }
 }
 
@@ -690,26 +670,6 @@ mod tests {
 
             for i in 0..72 { // 72 == 64 squares + 8 newlines
                 assert_eq!(b[i], expected[i] as u8);
-            }
-        }
-    }
-
-    mod iter {
-        use super::*;
-
-        #[test]
-        fn inits_to_zero_small_alignment() {
-            let bb = chess_board();
-            for byte in bb {
-                assert_eq!(byte, 0);
-            }
-        }
-
-        #[test]
-        fn inits_to_zero_large_alignment() {
-            let bb = chess_board();
-            for byte in bb {
-                assert_eq!(byte, 0);
             }
         }
     }
