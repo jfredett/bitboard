@@ -204,10 +204,10 @@ impl<N : Unsigned> Bitboard<N> {
 
 
     fn coords_to_offset_and_pos(x: usize, y: usize) -> (isize, u8) {
-        let pos = x + y * Self::alignment_bits();
-        let offset = pos / Self::alignment_bits();
+        let pos = x + y * N::to_usize();
+        let byte_offset = pos / Self::alignment_bits();
         let bit_pos = 1 << (pos % Self::alignment_bits());
-        (offset as isize, bit_pos)
+        (byte_offset as isize, bit_pos)
     }
 
     #[inline(always)]
@@ -468,6 +468,68 @@ mod tests {
             assert_ne!(bb1.ptr, bb2.ptr);
             // equality is by value
             assert_eq!(bb1, bb2);
+        }
+
+    }
+
+    mod clone {
+        use super::*;
+
+        #[test]
+        fn clone() {
+            let mut bb1 = tic_tac_toe_board();
+
+            bb1.set(0,0);
+            bb1.set(1,1);
+            bb1.set(2,2);
+
+            assert_eq!(bb1, bb1.clone());
+        }
+
+    }
+
+    mod coord_calculation {
+        use super::*;
+
+        #[test]
+        fn maps_to_linear_sequence_small() {
+            let mut positions = vec![];
+            for j in 0..3 {
+                for i in 0..3 {
+                    positions.push(Bitboard::<U3>::coords_to_offset_and_pos(i,j));
+                }
+            }
+
+            let expected_positions = vec![
+                (0,1<<0), (0,1<<1), (0,1<<2),
+                (0,1<<3), (0,1<<4), (0,1<<5),
+                (0,1<<6), (0,1<<7), (1,1<<0)
+            ];
+
+            assert_eq!(positions, expected_positions);
+        }
+
+        #[test]
+        fn maps_to_linear_sequence_medium() {
+            let mut positions = vec![];
+            for j in 0..8 {
+                for i in 0..8 {
+                    positions.push(Bitboard::<U8>::coords_to_offset_and_pos(i,j));
+                }
+            }
+
+            let expected_positions = vec![
+                (0,1<<0), (0,1<<1), (0,1<<2), (0,1<<3), (0,1<<4), (0,1<<5), (0,1<<6), (0,1<<7), 
+                (1,1<<0), (1,1<<1), (1,1<<2), (1,1<<3), (1,1<<4), (1,1<<5), (1,1<<6), (1,1<<7), 
+                (2,1<<0), (2,1<<1), (2,1<<2), (2,1<<3), (2,1<<4), (2,1<<5), (2,1<<6), (2,1<<7), 
+                (3,1<<0), (3,1<<1), (3,1<<2), (3,1<<3), (3,1<<4), (3,1<<5), (3,1<<6), (3,1<<7), 
+                (4,1<<0), (4,1<<1), (4,1<<2), (4,1<<3), (4,1<<4), (4,1<<5), (4,1<<6), (4,1<<7), 
+                (5,1<<0), (5,1<<1), (5,1<<2), (5,1<<3), (5,1<<4), (5,1<<5), (5,1<<6), (5,1<<7), 
+                (6,1<<0), (6,1<<1), (6,1<<2), (6,1<<3), (6,1<<4), (6,1<<5), (6,1<<6), (6,1<<7), 
+                (7,1<<0), (7,1<<1), (7,1<<2), (7,1<<3), (7,1<<4), (7,1<<5), (7,1<<6), (7,1<<7), 
+            ];
+
+            assert_eq!(positions, expected_positions);
         }
 
     }
@@ -780,6 +842,18 @@ mod tests {
             let res = go.set(200,100);
 
             assert_eq!(res, Err(BitboardError::OutOfBounds(200,100)))
+        }
+
+        #[test]
+        fn no_double_sets() {
+            let mut g = go_board();
+
+            for i in 0..19 {
+                for j in 0..19 {
+                    if g.is_set(i,j).ok().unwrap() { panic!("Tried to double-set ({},{})", i, j); }
+                    g.set(i,j);
+                }
+            }
         }
 
     }
