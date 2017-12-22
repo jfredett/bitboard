@@ -381,6 +381,8 @@ impl<N : Unsigned> cmp::PartialEq for Bitboard<N> {
     }
 }
 
+impl<N : Unsigned> cmp::Eq for Bitboard<N> { }
+
 impl<N: Unsigned> Clone for Bitboard<N> {
     fn clone(&self) -> Bitboard<N> {
         let new_bb : Bitboard<N> = Bitboard::new();
