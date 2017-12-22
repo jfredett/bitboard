@@ -378,7 +378,6 @@ impl<N : Unsigned> ops::BitAnd for Bitboard<N> {
 
     fn bitand(self, other: Bitboard<N>) -> Bitboard<N> {
         let new_bb : Bitboard<N> = Bitboard::new();
-        // we know the sizes are the same because `N` is the same, and `A` is the same
         for amt in 0..(Self::size() as isize) {
             unsafe {
                 *new_bb.ptr.offset(amt) = (*self.ptr.offset(amt)) & (*other.ptr.offset(amt))
@@ -390,7 +389,6 @@ impl<N : Unsigned> ops::BitAnd for Bitboard<N> {
 
 impl<N : Unsigned> ops::BitAndAssign for Bitboard<N> {
     fn bitand_assign(&mut self, other: Bitboard<N>) {
-        // we know the sizes are the same because `N` is the same, and `A` is the same
         for amt in 0..(Self::size() as isize) {
             unsafe {
                 *self.ptr.offset(amt) &= *other.ptr.offset(amt)
@@ -404,7 +402,6 @@ impl<N : Unsigned> ops::BitOr for Bitboard<N> {
 
     fn bitor(self, other: Bitboard<N>) -> Bitboard<N> {
         let new_bb : Bitboard<N> = Bitboard::new();
-        // we know the sizes are the same because `N` is the same, and `A` is the same
         for amt in 0..(Self::size() as isize) {
             unsafe {
                 *new_bb.ptr.offset(amt) = (*self.ptr.offset(amt)) | (*other.ptr.offset(amt))
@@ -416,7 +413,6 @@ impl<N : Unsigned> ops::BitOr for Bitboard<N> {
 
 impl<N : Unsigned> ops::BitOrAssign for Bitboard<N> {
     fn bitor_assign(&mut self, other: Bitboard<N>) {
-        // we know the sizes are the same because `N` is the same, and `A` is the same
         for amt in 0..(Self::size() as isize) {
             unsafe {
                 *self.ptr.offset(amt) |= *other.ptr.offset(amt)
@@ -430,7 +426,6 @@ impl<N : Unsigned> ops::BitXor for Bitboard<N> {
 
     fn bitxor(self, other: Bitboard<N>) -> Bitboard<N> {
         let new_bb : Bitboard<N> = Bitboard::new();
-        // we know the sizes are the same because `N` is the same, and `A` is the same
         for amt in 0..(Self::size() as isize) {
             unsafe {
                 *new_bb.ptr.offset(amt) = (*self.ptr.offset(amt)) ^ (*other.ptr.offset(amt))
@@ -442,7 +437,6 @@ impl<N : Unsigned> ops::BitXor for Bitboard<N> {
 
 impl<N : Unsigned> ops::BitXorAssign for Bitboard<N> {
     fn bitxor_assign(&mut self, other: Bitboard<N>) {
-        // we know the sizes are the same because `N` is the same, and `A` is the same
         for amt in 0..(Self::size() as isize) {
             unsafe {
                 *self.ptr.offset(amt) ^= *other.ptr.offset(amt)

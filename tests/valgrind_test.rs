@@ -22,6 +22,6 @@ mod memory_allocation {
 
     #[test]
     fn alloc() {
-        let bb = Bitboard::<U20>::new();
+        let _bb = Bitboard::<U20>::new();
     }
 }
