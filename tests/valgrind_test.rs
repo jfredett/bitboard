@@ -19,7 +19,7 @@ mod memory_allocation {
 
     #[test]
     fn alloc() {
-        let bb = Bitboard::<U20, u8>::new();
+        let bb = Bitboard::<U20>::new();
         for byte in bb {
             assert_eq!(byte, 0);
         }
