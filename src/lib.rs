@@ -1,4 +1,4 @@
-#![feature(unique, alloc, heap_api, allocator_api)]
+#![feature(unique, alloc, heap_api, allocator_api, test)]
 
 //! Bitboard, compile-time-sized, typesafe, low level bitboards for Rust.
 //!
@@ -6,6 +6,9 @@
 
 #![recursion_limit="256"]
 extern crate typenum;
+
+#[cfg(test)]
+extern crate test;
 
 use std::mem;
 use std::ops;
@@ -405,7 +408,8 @@ impl<N : Unsigned> ops::BitAnd for Bitboard<N> {
 
 
 #[cfg(test)]
-mod test {
+#[allow(unused_must_use)]
+mod tests {
     use super::*;
 
     use typenum::consts::*;
@@ -434,7 +438,37 @@ mod test {
         use super::*;
 
         #[test]
-        fn bitand_identity() {
+        fn is_intersection() {
+            // 100
+            // 010
+            // 001
+            let mut bb1 = tic_tac_toe_board();
+
+            // 001
+            // 010
+            // 100
+            let mut bb2 = tic_tac_toe_board();
+
+            // 000
+            // 010
+            // 000
+            let mut expected = tic_tac_toe_board();
+
+            bb1.set(0,0);
+            bb1.set(1,1);
+            bb1.set(2,2);
+
+            bb2.set(0,2);
+            bb2.set(1,1);
+            bb2.set(2,0);
+
+            expected.set(1,1);
+
+            assert_eq!(bb1 & bb2, expected);
+        }
+
+        #[test]
+        fn has_identity() {
             let mut bb1 = go_board();
 
             assert_eq!(bb1.clone() & bb1.clone(), bb1.clone());
@@ -460,10 +494,6 @@ mod test {
 
         #[test]
         fn statically_assigned_alignment() {
-            // NB: The alignment paramater *could* be autocalculated. If memory is a concern, you
-            // might choose a smaller alignment, if speed is all you care about, a larger alignment
-            // makes sense. Ultimately it should be arbitrary and things should work regardless of
-            // specific alignments.
             assert_eq!(Bitboard::<U8>::alignment(), 1); // aligned to the byte
             assert_eq!(Bitboard::<U19>::alignment(), 1);     // ibid
         }
@@ -487,7 +517,6 @@ mod test {
         use super::*;
 
         #[test]
-        #[allow(unused_must_use)]
         fn set() {
             let mut tt = tic_tac_toe_board();
 
@@ -512,7 +541,6 @@ mod test {
         use super::*;
 
         #[test]
-        #[allow(unused_must_use)]
         fn unset() {
             let mut tt = tic_tac_toe_board();
 
@@ -539,7 +567,6 @@ mod test {
         use super::*;
 
         #[test]
-        #[allow(unused_must_use)]
         fn flip() {
             let mut tt = tic_tac_toe_board();
 
@@ -570,7 +597,6 @@ mod test {
         use std::io::{Write};
 
         #[test]
-        #[allow(unused_must_use)]
         fn formats_tic_tac_toe_bitboard() {
             let mut c = tic_tac_toe_board();
 
@@ -593,7 +619,6 @@ mod test {
         }
 
         #[test]
-        #[allow(unused_must_use)]
         fn formats_chess_bitboard() {
             let mut c = chess_board();
 
@@ -624,7 +649,6 @@ mod test {
         use std::io::{Write};
 
         #[test]
-        #[allow(unused_must_use)]
         fn formats_tic_tac_toe_bitboard() {
             let mut c = tic_tac_toe_board();
 
@@ -644,7 +668,6 @@ mod test {
         }
 
         #[test]
-        #[allow(unused_must_use)]
         fn formats_chess_bitboard() {
             let mut c = chess_board();
 
@@ -689,3 +712,131 @@ mod test {
         }
     }
 }
+
+#[cfg(test)]
+#[allow(unused_must_use)]
+mod benches {
+    use super::*;
+
+    use typenum::consts::*;
+    use test::Bencher;
+
+    fn tic_tac_toe_board() -> Bitboard<U3> { Bitboard::new() }
+    fn chess_board() -> Bitboard<U8> { Bitboard::new() }
+    fn go_board() -> Bitboard<U19> { Bitboard::new() }
+
+
+    fn prepped_ttt_board() -> Bitboard<U3> {
+        let mut bb1 = tic_tac_toe_board();
+
+        bb1.set(0,0);
+        bb1.set(1,1);
+        bb1.set(2,2);
+
+        bb1
+    }
+
+    fn prepped_chess_board() -> Bitboard<U8> {
+        let mut bb1 = chess_board();
+
+        bb1.set(0,6);
+        bb1.set(1,0);
+        bb1.set(1,3);
+        bb1.set(3,5);
+        bb1.set(7,1);
+        bb1.set(1,2);
+        bb1.set(3,0);
+        bb1.set(2,3);
+
+        bb1
+    }
+
+    fn prepped_go_board() -> Bitboard<U19> {
+        let mut bb1 = go_board();
+
+        bb1.set(0,6);
+        bb1.set(1,0);
+        bb1.set(1,3);
+        bb1.set(3,5);
+        bb1.set(7,1);
+        bb1.set(1,2);
+        bb1.set(3,0);
+        bb1.set(2,3);
+
+        bb1.set(1,16);
+        bb1.set(11,11);
+        bb1.set(1,14);
+        bb1.set(13,15);
+        bb1.set(7,11);
+        bb1.set(1,12);
+        bb1.set(3,10);
+        bb1.set(18,13);
+
+        bb1
+    }
+
+    mod eq {
+        use super::*;
+
+
+        #[bench]
+        fn intersection_large(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_go_board());
+            let bb2 = &test::black_box(prepped_go_board());
+            b.iter(|| {
+                bb1.to_owned() == bb2.to_owned()
+            });
+        }
+
+        #[bench]
+        fn intersection_medium(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_chess_board());
+            let bb2 = &test::black_box(prepped_chess_board());
+            b.iter(|| {
+                bb1.to_owned() == bb2.to_owned()
+            });
+        }
+
+        #[bench]
+        fn intersection_small(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_ttt_board());
+            let bb2 = &test::black_box(prepped_ttt_board());
+            b.iter(|| {
+                bb1.to_owned() == bb2.to_owned()
+            });
+        }
+    }
+
+    mod bitand {
+        use super::*;
+
+
+        #[bench]
+        fn intersection_large(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_go_board());
+            let bb2 = &test::black_box(prepped_go_board());
+            b.iter(|| {
+                bb1.to_owned() & bb2.to_owned()
+            });
+        }
+
+        #[bench]
+        fn intersection_medium(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_chess_board());
+            let bb2 = &test::black_box(prepped_chess_board());
+            b.iter(|| {
+                bb1.to_owned() & bb2.to_owned()
+            });
+        }
+
+        #[bench]
+        fn intersection_small(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_ttt_board());
+            let bb2 = &test::black_box(prepped_ttt_board());
+            b.iter(|| {
+                bb1.to_owned() & bb2.to_owned()
+            });
+        }
+    }
+}
+
