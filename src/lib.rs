@@ -388,6 +388,17 @@ impl<N : Unsigned> ops::BitAnd for Bitboard<N> {
     }
 }
 
+impl<N : Unsigned> ops::BitAndAssign for Bitboard<N> {
+    fn bitand_assign(&mut self, other: Bitboard<N>) {
+        // we know the sizes are the same because `N` is the same, and `A` is the same
+        for amt in 0..(Self::size() as isize) {
+            unsafe {
+                *self.ptr.offset(amt) &= *other.ptr.offset(amt)
+            }
+        }
+    }
+}
+
 impl<N : Unsigned> ops::BitOr for Bitboard<N> {
     type Output = Bitboard<N>;
 
@@ -582,6 +593,38 @@ mod tests {
             expected.set(1,1);
 
             assert_eq!(bb1 & bb2, expected);
+        }
+
+        #[test]
+        fn assign_does_intersection_in_place() {
+            // 100
+            // 010
+            // 001
+            let mut bb1 = tic_tac_toe_board();
+
+            // 001
+            // 010
+            // 100
+            let mut bb2 = tic_tac_toe_board();
+
+            // 000
+            // 010
+            // 000
+            let mut expected = tic_tac_toe_board();
+
+            bb1.set(0,0);
+            bb1.set(1,1);
+            bb1.set(2,2);
+
+            bb2.set(0,2);
+            bb2.set(1,1);
+            bb2.set(2,0);
+
+            expected.set(1,1);
+
+            bb1 &= bb2;
+
+            assert_eq!(bb1, expected);
         }
 
         #[test]
@@ -962,6 +1005,43 @@ mod benches {
             let bb2 = &test::black_box(prepped_ttt_board());
             b.iter(|| {
                 bb1.to_owned() | bb2.to_owned()
+            });
+        }
+    }
+
+    mod bitand_assign {
+        use super::*;
+
+        #[bench]
+        fn large(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_go_board());
+            let bb2 = &test::black_box(prepped_go_board());
+            b.iter(|| {
+                let mut a = bb1.to_owned();
+                let b = bb2.to_owned();
+                a &= b
+            });
+        }
+
+        #[bench]
+        fn medium(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_chess_board());
+            let bb2 = &test::black_box(prepped_chess_board());
+            b.iter(|| {
+                let mut a = bb1.to_owned();
+                let b = bb2.to_owned();
+                a &= b
+            });
+        }
+
+        #[bench]
+        fn small(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_ttt_board());
+            let bb2 = &test::black_box(prepped_ttt_board());
+            b.iter(|| {
+                let mut a = bb1.to_owned();
+                let b = bb2.to_owned();
+                a &= b
             });
         }
     }
