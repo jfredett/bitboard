@@ -220,6 +220,28 @@ impl<N : Unsigned> Bitboard<N> {
         i <= N::to_usize()
     }
 
+    /// The last byte will sometimes contain junk, since we allocate more than we need. This
+    /// calculates a mask of the relevant bits in the final byte.
+    #[inline(always)]
+    fn last_byte_mask() -> u8 {
+        // this is the position of the last bit in the board. Not the off-by-one to correct for
+        // indexing
+        //
+        // bit_pos == Self::coords_to_offset_and_pos(N-1, N-1);
+        // bit_pos == 1 << (N-1 + (N-1) * N mod AlignmentBits)
+        // bit_pos == 1 << (N^2 - 1 mod A)
+        // bit_pos == 1 << ((N mod A)^2 - 1 mod A) -> in rust, that's "1 << ((A - ((N%A).pow(2) % A) + 1) % A)"
+        //
+        // That's very meticulously parenthesized
+        let a = Self::alignment_bits();
+        let n = N::to_usize();
+        let bit_pos = 1 << ((a - ((n % a).pow(2) % a) + 1) % a);
+        // this is the mask which selects all the irrelevant bits:
+        let irrelevant_bits = bit_pos - 1;
+        // so the relvant bits are just !irrelevant_bits, which gives us the mask.
+        !irrelevant_bits
+    }
+
     /// Return the alignment, in bytes, of the Bitboard
     ///
     /// # Examples
@@ -350,10 +372,17 @@ impl<N : Unsigned> fmt::Display for Bitboard<N> {
 impl<N : Unsigned> cmp::PartialEq for Bitboard<N> {
     fn eq(&self, other: &Bitboard<N>) -> bool {
         // we know the sizes are the same because `N` is the same, and `A` is the same
-        for amt in 0..Self::size() {
+        for amt in 0..(Self::size() as isize) {
             unsafe {
-                if *self.ptr.offset(amt as isize) != *other.ptr.offset(amt as isize) {
-                    return false;
+                if *self.ptr.offset(amt) != *other.ptr.offset(amt) {
+                    if amt+1 == Self::size() as isize { // we're on the last byte, so re-do the check with the mask
+                        let mask = Self::last_byte_mask();
+                        // we can just return the result, since it's the last byte anyway.
+                        return (*self.ptr.offset(amt) | mask) == (*other.ptr.offset(amt) | mask)
+                    } else {
+                        // inequality on any other byte is 'real' since all bits are relevant.
+                        return false;
+                    }
                 }
             }
         }
@@ -469,6 +498,7 @@ mod tests {
             // equality is by value
             assert_eq!(bb1, bb2);
         }
+    }
 
     }
 
