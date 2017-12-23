@@ -517,8 +517,18 @@ impl<N : Unsigned> ops::Not for Bitboard<N> {
 
     fn not(self) -> Bitboard<N> {
         let new_bb : Bitboard<N> = self.clone();
-        for amt in 0..((Self::size()) as isize) {
-            unsafe { *new_bb.ptr.offset(amt) ^= 255u8; }
+
+        let s = Self::size() as isize;
+        for amt in 0..s {
+            if amt+1 == s {
+                let mask = Self::last_byte_mask();
+                unsafe {
+                    *new_bb.ptr.offset(amt) ^= 255u8;
+                    *new_bb.ptr.offset(amt) |= mask;
+                }
+            } else {
+                unsafe { *new_bb.ptr.offset(amt) ^= 255u8; }
+            }
         }
 
         return new_bb;
@@ -549,6 +559,35 @@ mod tests {
             // equality is by value
             assert_eq!(bb1, bb2);
         }
+
+
+        #[test]
+        fn inverse_eq_identity() {
+            let bb1 = go_board();
+            let bb2 = go_board();
+
+            // these are separate objects
+            assert_ne!(bb1.ptr, bb2.ptr);
+            // equality is by value
+            assert_eq!(!bb1, !bb2);
+        }
+
+        #[test]
+        fn all_set_eq_inverse_of_blank() {
+            let mut bb1 = go_board();
+            let bb2 = go_board();
+
+            for i in 0..19 {
+                for j in 0..19 {
+                    bb1.set(i,j);
+                }
+            }
+
+            // these are separate objects
+            assert_ne!(bb1.ptr, bb2.ptr);
+            // equality is by value
+            assert_eq!(bb1, !bb2);
+        }
     }
 
 
@@ -578,7 +617,8 @@ mod tests {
             expected.set(0,2);
             expected.set(1,2);
 
-            assert_eq!(!bb1, expected);
+            assert_eq!(!bb1.clone(), expected.clone());
+            assert_eq!(bb1, !expected);
         }
 
         #[test]
@@ -601,17 +641,18 @@ mod tests {
 
         #[test]
         fn self_inverse() {
-            //let mut bb1 = go_board();
-            //let expected = Bitboard::new();
+            let mut bb1 = tic_tac_toe_board();
+            let mut expected = Bitboard::new();
 
 
-            //assert_eq!(!(!bb1.clone()).clone(), expected);
+            assert_eq!(!(!bb1.clone()).clone(), expected);
 
-            //bb1.set(1,2);
+            bb1.set(1,2);
+            expected.set(1,2);
 
-            //assert_eq!(!(!bb1.clone()).clone(), expected);
-
+            assert_eq!(!(!bb1.clone()).clone(), expected);
         }
+
     }
 
     mod clone {
