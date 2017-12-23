@@ -474,6 +474,19 @@ impl<N : Unsigned> ops::BitXorAssign for Bitboard<N> {
     }
 }
 
+impl<N : Unsigned> ops::Not for Bitboard<N> {
+    type Output = Bitboard<N>;
+
+    fn not(self) -> Bitboard<N> {
+        let new_bb : Bitboard<N> = self.clone();
+        for amt in 0..((Self::size()) as isize) {
+            unsafe { *new_bb.ptr.offset(amt) ^= 255u8; }
+        }
+
+        return new_bb;
+    }
+}
+
 #[cfg(test)]
 #[allow(unused_must_use)]
 mod tests {
@@ -500,6 +513,67 @@ mod tests {
         }
     }
 
+
+    mod bitnot {
+        use super::*;
+
+        #[test]
+        fn inverse() {
+            // 100
+            // 010
+            // 001
+            let mut bb1 = tic_tac_toe_board();
+
+            // 011
+            // 101
+            // 110
+            let mut expected = tic_tac_toe_board();
+
+            bb1.set(0,0);
+            bb1.set(1,1);
+            bb1.set(2,2);
+
+            expected.set(1,0);
+            expected.set(2,0);
+            expected.set(0,1);
+            expected.set(2,1);
+            expected.set(0,2);
+            expected.set(1,2);
+
+            assert_eq!(!bb1, expected);
+        }
+
+        #[test]
+        fn inverse_and_equals_zero() {
+            // 100
+            // 010
+            // 001
+            let mut bb1 = tic_tac_toe_board();
+
+            let expected = tic_tac_toe_board();
+
+            bb1.set(0,0);
+            bb1.set(1,1);
+            bb1.set(2,2);
+
+            let not_bb1 = !(bb1.clone());
+
+            assert_eq!(bb1 & not_bb1, expected);
+        }
+
+        #[test]
+        fn self_inverse() {
+            //let mut bb1 = go_board();
+            //let expected = Bitboard::new();
+
+
+            //assert_eq!(!(!bb1.clone()).clone(), expected);
+
+            //bb1.set(1,2);
+
+            //assert_eq!(!(!bb1.clone()).clone(), expected);
+
+        }
     }
 
     mod clone {
