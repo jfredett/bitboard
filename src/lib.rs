@@ -141,6 +141,27 @@ impl<N : Unsigned> Bitboard<N> {
         Ok(unsafe { (*self.ptr.offset(offset) & bit_pos) != 0 })
     }
 
+    pub fn any_set(&self) -> bool {
+        let s = Self::size() as isize;
+        for amt in 0..s {
+            unsafe {
+                if *self.ptr.offset(amt) != 0 {
+                    if amt + 1 == s { // we're on the last byte, so re-do the check with the mask
+                        let mask = Self::last_byte_mask();
+                        // if it's the same as the mask, there are no bits set that are relevant, and
+                        // this will return true
+                        return (*self.ptr.offset(amt) | mask) != mask
+                    } else {
+                        // inequality on any other byte is 'real' since all bits are relevant.
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+
     /// Flip the value of the bit at (x,y)
     ///
     /// # Examples
@@ -954,6 +975,17 @@ mod tests {
 
             assert!(tt.is_set(0,0).ok().unwrap());
             assert!(tt.is_unset(0,1).ok().unwrap());
+        }
+
+        #[test]
+        fn any_set() {
+            let mut tt = tic_tac_toe_board();
+
+            assert!(!tt.any_set());
+
+            tt.set(0,0); tt.set(1,1); tt.set(2,2);
+
+            assert!(tt.any_set());
         }
 
         #[test]
