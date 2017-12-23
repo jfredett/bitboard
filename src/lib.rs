@@ -1129,7 +1129,7 @@ mod benches {
     fn tic_tac_toe_board() -> Bitboard<U3> { Bitboard::new() }
     fn chess_board() -> Bitboard<U8> { Bitboard::new() }
     fn go_board() -> Bitboard<U19> { Bitboard::new() }
-
+    fn giant_board() -> Bitboard<U100> { Bitboard::new() }
 
     fn prepped_ttt_board() -> Bitboard<U3> {
         let mut bb1 = tic_tac_toe_board();
@@ -1180,9 +1180,53 @@ mod benches {
         bb1
     }
 
+    mod set {
+        use super::*;
+
+        #[bench]
+        fn giant(b: &mut Bencher) {
+            let bb1 = &test::black_box(giant_board());
+            b.iter(|| {
+                bb1.to_owned().set(13,14)
+            });
+        }
+
+        #[bench]
+        fn large(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_go_board());
+            b.iter(|| {
+                bb1.to_owned().set(13,14)
+            });
+        }
+
+        #[bench]
+        fn medium(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_chess_board());
+            b.iter(|| {
+                bb1.to_owned().set(3,6)
+            });
+        }
+
+        #[bench]
+        fn small(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_ttt_board());
+            b.iter(|| {
+                bb1.to_owned().set(1,2)
+            });
+        }
+    }
+
     mod eq {
         use super::*;
 
+        #[bench]
+        fn giant(b: &mut Bencher) {
+            let bb1 = &test::black_box(giant_board());
+            let bb2 = &test::black_box(giant_board());
+            b.iter(|| {
+                bb1.to_owned() == bb2.to_owned()
+            });
+        }
 
         #[bench]
         fn large(b: &mut Bencher) {
@@ -1216,6 +1260,17 @@ mod benches {
         use super::*;
 
         #[bench]
+        fn giant(b: &mut Bencher) {
+            let bb1 = &test::black_box(giant_board());
+            let bb2 = &test::black_box(giant_board());
+            b.iter(|| {
+                let mut a = bb1.to_owned();
+                let b = bb2.to_owned();
+                a ^= b
+            });
+        }
+
+        #[bench]
         fn large(b: &mut Bencher) {
             let bb1 = &test::black_box(prepped_go_board());
             let bb2 = &test::black_box(prepped_go_board());
@@ -1249,9 +1304,54 @@ mod benches {
         }
     }
 
+    mod bitnot {
+        use super::*;
+
+
+        #[bench]
+        fn giant(b: &mut Bencher) {
+            let bb1 = &test::black_box(giant_board());
+            b.iter(|| {
+               !bb1.to_owned()
+            });
+        }
+
+        #[bench]
+        fn large(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_go_board());
+            b.iter(|| {
+               !bb1.to_owned()
+            });
+        }
+
+        #[bench]
+        fn medium(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_chess_board());
+            b.iter(|| {
+                !bb1.to_owned()
+            });
+        }
+
+        #[bench]
+        fn small(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_ttt_board());
+            b.iter(|| {
+                !bb1.to_owned()
+            });
+        }
+    }
 
     mod bitxor {
         use super::*;
+
+        #[bench]
+        fn giant(b: &mut Bencher) {
+            let bb1 = &test::black_box(giant_board());
+            let bb2 = &test::black_box(giant_board());
+            b.iter(|| {
+                bb1.to_owned() ^ bb2.to_owned()
+            });
+        }
 
         #[bench]
         fn large(b: &mut Bencher) {
@@ -1283,6 +1383,17 @@ mod benches {
 
     mod bitor_assign {
         use super::*;
+
+        #[bench]
+        fn giant(b: &mut Bencher) {
+            let bb1 = &test::black_box(giant_board());
+            let bb2 = &test::black_box(giant_board());
+            b.iter(|| {
+                let mut a = bb1.to_owned();
+                let b = bb2.to_owned();
+                a |= b
+            });
+        }
 
         #[bench]
         fn large(b: &mut Bencher) {
@@ -1322,6 +1433,15 @@ mod benches {
         use super::*;
 
         #[bench]
+        fn giant(b: &mut Bencher) {
+            let bb1 = &test::black_box(giant_board());
+            let bb2 = &test::black_box(giant_board());
+            b.iter(|| {
+                bb1.to_owned() | bb2.to_owned()
+            });
+        }
+
+        #[bench]
         fn large(b: &mut Bencher) {
             let bb1 = &test::black_box(prepped_go_board());
             let bb2 = &test::black_box(prepped_go_board());
@@ -1351,6 +1471,17 @@ mod benches {
 
     mod bitand_assign {
         use super::*;
+
+        #[bench]
+        fn giant(b: &mut Bencher) {
+            let bb1 = &test::black_box(giant_board());
+            let bb2 = &test::black_box(giant_board());
+            b.iter(|| {
+                let mut a = bb1.to_owned();
+                let b = bb2.to_owned();
+                a &= b
+            });
+        }
 
         #[bench]
         fn large(b: &mut Bencher) {
@@ -1390,6 +1521,15 @@ mod benches {
         use super::*;
 
         #[bench]
+        fn giant(b: &mut Bencher) {
+            let bb1 = &test::black_box(giant_board());
+            let bb2 = &test::black_box(giant_board());
+            b.iter(|| {
+                bb1.to_owned() & bb2.to_owned()
+            });
+        }
+
+        #[bench]
         fn large(b: &mut Bencher) {
             let bb1 = &test::black_box(prepped_go_board());
             let bb2 = &test::black_box(prepped_go_board());
@@ -1419,6 +1559,14 @@ mod benches {
 
     mod clone {
         use super::*;
+
+        #[bench]
+        fn giant(b: &mut Bencher) {
+            let bb1 = &test::black_box(giant_board());
+            b.iter(|| {
+                bb1.clone()
+            });
+        }
 
         #[bench]
         fn large(b: &mut Bencher) {
