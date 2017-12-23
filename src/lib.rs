@@ -12,6 +12,7 @@ extern crate test;
 
 use std::mem;
 use std::ops;
+use std::hash;
 use std::cmp;
 use std::fmt;
 use std::marker::PhantomData;
@@ -391,6 +392,22 @@ impl<N : Unsigned> cmp::PartialEq for Bitboard<N> {
 }
 
 impl<N : Unsigned> cmp::Eq for Bitboard<N> { }
+
+
+impl<N : Unsigned> hash::Hash for Bitboard<N> {
+    fn hash<H : hash::Hasher>(&self, state: &mut H) {
+        let s = Self::size() as isize;
+        for amt in 0..s {
+            if amt+1 == s as isize { // we're on the last byte, so re-do the check with the mask
+                let mask = Self::last_byte_mask();
+                // we need to mask off the end bits so we don't get incorrect hashes
+                unsafe { (*self.ptr.offset(amt) | mask).hash(state); }
+            } else {
+                unsafe { (*self.ptr.offset(amt)).hash(state); }
+            }
+        }
+    }
+}
 
 impl<N: Unsigned> Clone for Bitboard<N> {
     fn clone(&self) -> Bitboard<N> {
