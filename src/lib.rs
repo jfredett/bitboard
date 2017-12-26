@@ -44,7 +44,8 @@ use typenum::marker_traits::*;
 /// Will save a lot of typing and will also probably prevent screwups.
 ///
 pub struct Bitboard<N: Unsigned> {
-    ptr: *mut u8,
+    // temporarily while I bughunt
+    pub ptr: *mut u8,
     typenum: PhantomData<N>,
 }
 
@@ -246,22 +247,35 @@ impl<N : Unsigned> Bitboard<N> {
     /// calculates a mask of the relevant bits in the final byte.
     #[inline(always)]
     fn last_byte_mask() -> u8 {
-        // this is the position of the last bit in the board. Not the off-by-one to correct for
-        // indexing
+        // bit overage == size*alignment - n^2; should always be <8
         //
-        // bit_pos == Self::coords_to_offset_and_pos(N-1, N-1);
-        // bit_pos == 1 << (N-1 + (N-1) * N mod AlignmentBits)
-        // bit_pos == 1 << (N^2 - 1 mod A)
-        // bit_pos == 1 << ((N mod A)^2 - 1 mod A) -> in rust, that's "1 << ((A - ((N%A).pow(2) % A) + 1) % A)"
+        // e.g., for 5x5, n^2 = 25. alignment = 8 bit, size = 4 bytes, so
         //
-        // That's very meticulously parenthesized
-        let a = Self::alignment_bits();
-        let n = N::to_usize();
-        let bit_pos = 1 << ((a - ((n % a).pow(2) % a) + 1) % a);
-        // this is the mask which selects all the irrelevant bits:
-        let irrelevant_bits = bit_pos - 1;
-        // so the relvant bits are just !irrelevant_bits, which gives us the mask.
-        !irrelevant_bits
+        // 32 - 25 = 7.
+        //
+        // for 4x4, n^2 = 16, alignment = 8bit, size = 2 bytes, so
+        //
+        // 8 * 2 - 16 = 0;
+        //
+        // no overage.
+        //
+        // for 6x6
+        //
+        // 40 - 36 = 4 bits of overage.
+        //
+        // Overage = number of bits unneeded, they always come from the high side of the byte. So
+        // the needed bits are just :
+        //
+        // (!0) >> overage
+        //
+        // thus the mask is
+        //
+        // !((!0) >> overage)
+
+        let size = Self::size() * Self::alignment_bits();
+        let slots = N::to_usize().pow(2);
+        let bit_overage = size - slots;
+        !(!0 >> bit_overage)
     }
 
     /// Return the alignment, in bytes, of the Bitboard
@@ -360,55 +374,74 @@ impl<N : Unsigned> Drop for Bitboard<N> {
 }
 
 impl<N : Unsigned> fmt::Debug for Bitboard<N> {
+    #[allow(unused_must_use)]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for i in 0..(N::to_usize()) {
-            for j in 0..(N::to_usize()) {
-                if self.is_set(i,j).ok().unwrap() {
-                    let _ = write!(f, "{}", 1);
-                } else {
-                    let _ = write!(f, "{}", 0);
-                }
-            }
-            let _ = writeln!(f);
+        let s = Self::size();
+        writeln!(f);
+        write!(f, "data: ");
+
+        for i in 0..s {
+            unsafe { write!(f, "{:08b} ", *self.ptr.offset(i as isize)); }
         }
-        write!(f, "")
+        writeln!(f);
+        write!(f, "mask: ");
+        for _ in 0..(s-1) {
+            write!(f, "{:08b} ", 0);
+        }
+        write!(f, "{:08b}", Self::last_byte_mask())
     }
 }
 
+// FIXME:: Are these implemented correctly?
 impl<N : Unsigned> fmt::Display for Bitboard<N> {
+    #[allow(unused_must_use)]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for i in 0..(N::to_usize()) {
-            for j in 0..(N::to_usize()) {
-                if self.is_set(i,j).ok().unwrap() {
-                    let _ = write!(f, "{}", 1);
+        let s = N::to_usize();
+
+        for c in 0..s {
+            for r in 0..s {
+                if self.is_set(r,c).ok().unwrap() {
+                    write!(f, "{}", 1);
                 } else {
-                    let _ = write!(f, "{}", 0);
+                    write!(f, "{}", 0);
                 }
             }
-            let _ = writeln!(f);
+            writeln!(f);
         }
         write!(f, "")
+
+        //for i in 0..(N::to_usize()) {
+            //for j in 0..(N::to_usize()) {
+                //if self.is_set(i,j).ok().unwrap() {
+                    //let _ = write!(f, "{}", 1);
+                //} else {
+                    //let _ = write!(f, "{}", 0);
+                //}
+            //}
+            //let _ = writeln!(f);
+        //}
     }
 }
 
 impl<N : Unsigned> cmp::PartialEq for Bitboard<N> {
     fn eq(&self, other: &Bitboard<N>) -> bool {
+        let mut acc = true;
+        let size = Self::size() as isize;
+        let mask = Self::last_byte_mask();
+
         // we know the sizes are the same because `N` is the same, and `A` is the same
-        for amt in 0..(Self::size() as isize) {
+        for amt in 0..size {
             unsafe {
-                if *self.ptr.offset(amt) != *other.ptr.offset(amt) {
-                    if amt+1 == Self::size() as isize { // we're on the last byte, so re-do the check with the mask
-                        let mask = Self::last_byte_mask();
-                        // we can just return the result, since it's the last byte anyway.
-                        return (*self.ptr.offset(amt) | mask) == (*other.ptr.offset(amt) | mask)
-                    } else {
-                        // inequality on any other byte is 'real' since all bits are relevant.
-                        return false;
-                    }
-                }
+                let mut s = *self.ptr.offset(amt);
+                let mut o = *other.ptr.offset(amt);
+
+                    acc &= s == o
+                        || ((amt + 1 == size) && ((s | mask) == (o | mask)));
+
+                if !acc { return acc; }
             }
         }
-        return true;
+        return acc;
     }
 }
 
@@ -574,11 +607,11 @@ mod tests {
 
         #[test]
         fn all_set_eq_inverse_of_blank() {
-            let mut bb1 = go_board();
-            let bb2 = go_board();
+            let mut bb1 = tic_tac_toe_board();
+            let bb2 = tic_tac_toe_board();
 
-            for i in 0..19 {
-                for j in 0..19 {
+            for i in 0..3 {
+                for j in 0..3 {
                     bb1.set(i,j);
                 }
             }
@@ -587,6 +620,26 @@ mod tests {
             assert_ne!(bb1.ptr, bb2.ptr);
             // equality is by value
             assert_eq!(bb1, !bb2);
+        }
+
+        #[test]
+        fn errant_eq_repro() {
+            // Reproduce a bug from 23-DEC-2017
+            let mut qs = Bitboard::<U4>::new();
+            for i in 0..4 {
+                for j in 0..4 {
+                    qs.set(i,j);
+                }
+            }
+
+            let mut test = Bitboard::<U5>::new();
+
+            qs.unset(1,3);
+            let inv = !Bitboard::new();
+
+            test.set(1,3);
+
+            assert_ne!(qs, inv);
         }
     }
 
@@ -675,6 +728,46 @@ mod tests {
         use super::*;
 
         #[test]
+        fn sets_appropriately() {
+            let mut b;
+            unsafe {
+                b = Bitboard::<U5>::new();
+                b.set(0,0); assert_eq!(*b.ptr, 1);
+
+                b = Bitboard::<U5>::new();
+                b.set(1,0); assert_eq!(*b.ptr, 2);
+
+                b = Bitboard::<U5>::new();
+                b.set(2,0); assert_eq!(*b.ptr, 4);
+
+                b = Bitboard::<U5>::new();
+                b.set(3,0); assert_eq!(*b.ptr, 8);
+
+                b = Bitboard::<U5>::new();
+                b.set(4,0); assert_eq!(*b.ptr, 16);
+
+                b = Bitboard::<U5>::new();
+                b.set(0,1); assert_eq!(*b.ptr, 32);
+
+                b = Bitboard::<U5>::new();
+                b.set(1,1); assert_eq!(*b.ptr, 64);
+
+                b = Bitboard::<U5>::new();
+                b.set(2,1); assert_eq!(*b.ptr, 128);
+
+                b = Bitboard::<U5>::new();
+                b.set(3,1); assert_eq!(*b.ptr.offset(1), 1);
+
+                b = Bitboard::<U5>::new();
+                b.set(4,1); assert_eq!(*b.ptr.offset(1), 2);
+
+                b = Bitboard::<U5>::new();
+                b.set(0,2); assert_eq!(*b.ptr.offset(1), 4);
+            }
+        }
+
+
+        #[test]
         fn maps_to_linear_sequence_small() {
             let mut positions = vec![];
             for j in 0..3 {
@@ -687,6 +780,25 @@ mod tests {
                 (0,1<<0), (0,1<<1), (0,1<<2),
                 (0,1<<3), (0,1<<4), (0,1<<5),
                 (0,1<<6), (0,1<<7), (1,1<<0)
+            ];
+
+            assert_eq!(positions, expected_positions);
+        }
+
+        #[test]
+        fn maps_to_linear_sequence_4x4() {
+            let mut positions = vec![];
+            for j in 0..4 {
+                for i in 0..4 {
+                    positions.push(Bitboard::<U4>::coords_to_offset_and_pos(i,j));
+                }
+            }
+
+            let expected_positions = vec![
+                (0,1<<0), (0,1<<1), (0,1<<2), (0,1<<3),
+                (0,1<<4), (0,1<<5), (0,1<<6), (0,1<<7),
+                (1,1<<0), (1,1<<1), (1,1<<2), (1,1<<3),
+                (1,1<<4), (1,1<<5), (1,1<<6), (1,1<<7)
             ];
 
             assert_eq!(positions, expected_positions);
@@ -1106,6 +1218,62 @@ mod tests {
         }
     }
 
+    mod last_byte_mask {
+        use super::*;
+
+        #[test]
+        fn for_3x3() {
+            // ttt is stored as 2 bytes as follows:
+            //
+            // 1 | 2 | 3
+            // ----------
+            // 4 | 5 | 6
+            // ----------
+            // 7 | 8 | 9
+            //
+            // becomes:
+            //
+            // 12345678XXXXXXX9
+            //
+            // so the mask *should* equal 254 (0b11111110) or `!1u8`
+            //
+
+            assert_eq!(Bitboard::<U3>::last_byte_mask(), !1u8);
+        }
+
+        #[test]
+        fn for_4x4() {
+            // 0123
+            // 4567
+            // 89ab
+            // cdef
+            //
+            // 7654321 fedcba98 -> no mask
+            //
+            // a = 8
+            // n = 4
+            // (n % a).pow(2) = 4^2 = 16
+            // 
+            assert_eq!(Bitboard::<U4>::last_byte_mask(), 0);
+        }
+
+        #[test]
+        fn for_5x5() {
+            assert_eq!(Bitboard::<U5>::last_byte_mask(), !1);
+        }
+
+        #[test]
+        fn for_6x6() {
+            assert_eq!(Bitboard::<U6>::last_byte_mask(), !(255 >> 4));
+        }
+
+        #[test]
+        fn for_7x7() {
+            assert_eq!(Bitboard::<U7>::last_byte_mask(), !(255 >> 7));
+        }
+
+    }
+
     mod debug {
         use super::*;
 
@@ -1115,44 +1283,23 @@ mod tests {
         fn formats_tic_tac_toe_bitboard() {
             let mut c = tic_tac_toe_board();
 
-            for i in 0..3 { c.set(i,i); }
+            // 101
+            // 010
+            // 001
+            //
+            // -> 00010101 XXXXXXX1
 
-            println!("");
-            println!("{:?}", c);
+            for i in 0..3 { c.set(i,i); }
+            c.set(2,0);
 
             let mut b = vec![];
-            let expected = vec![
-                '1','0','0','\n',
-                '0','1','0','\n',
-                '0','0','1','\n'];
+            let expected = vec!['\n',
+                'd','a','t','a',':',' ','0','0','0','1','0','1','0','1',' ','0','0','0','0','0','0','0','1','\n',
+                'm','a','s','k',':',' ','0','0','0','1','0','1','0','1',' ','1','1','1','1','1','1','1','0','\n'];
 
             write!(&mut b, "{:?}", c);
 
             for i in 0..12 { // 12 = 9 squares + 3 newlines
-                assert_eq!(b[i], expected[i] as u8);
-            }
-        }
-
-        #[test]
-        fn formats_chess_bitboard() {
-            let mut c = chess_board();
-
-            for i in 0..8 { c.set(i,i); }
-
-            let mut b = vec![];
-            let expected = vec![
-                '1','0','0','0','0','0','0','0','\n',
-                '0','1','0','0','0','0','0','0','\n',
-                '0','0','1','0','0','0','0','0','\n',
-                '0','0','0','1','0','0','0','0','\n',
-                '0','0','0','0','1','0','0','0','\n',
-                '0','0','0','0','0','1','0','0','\n',
-                '0','0','0','0','0','0','1','0','\n',
-                '0','0','0','0','0','0','0','1','\n'];
-
-            write!(&mut b, "{:?}", c);
-
-            for i in 0..72 { // 72 == 64 squares + 8 newlines
                 assert_eq!(b[i], expected[i] as u8);
             }
         }
