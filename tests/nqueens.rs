@@ -297,9 +297,8 @@ mod tests {
           assert!(queen_solver::<U8>().is_some());
         }
 
-
-        //#[test]
         // FIXME: This SIGSEGV's with an invalid mem ref. Not sure where
+        #[test]
         fn for_16x16() {
           assert!(queen_solver::<U16>().is_some());
         }
