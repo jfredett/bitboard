@@ -420,15 +420,17 @@ impl<N : Unsigned> cmp::PartialEq for Bitboard<N> {
         let mut acc = true;
         let size = Self::pointer_size() as isize;
         let mask = Self::last_byte_mask();
+        let mut s;
+        let mut o;
 
         // we know the sizes are the same because `N` is the same, and `A` is the same
         for amt in 0..size {
             unsafe {
-                let mut s = *self.ptr.offset(amt);
-                let mut o = *other.ptr.offset(amt);
+                s = *self.ptr.offset(amt);
+                o = *other.ptr.offset(amt);
 
-                    acc &= s == o
-                        || ((amt + 1 == size) && ((s | mask) == (o | mask)));
+                acc &= s == o
+                    || ((amt + 1 == size) && ((s | mask) == (o | mask)));
 
                 if !acc { return acc; }
             }
@@ -443,15 +445,12 @@ impl<N : Unsigned> cmp::Eq for Bitboard<N> { }
 impl<N : Unsigned> hash::Hash for Bitboard<N> {
     fn hash<H : hash::Hasher>(&self, state: &mut H) {
         let s = Self::pointer_size() as isize;
-        for amt in 0..s {
-            if amt+1 == s as isize { // we're on the last byte, so re-do the check with the mask
-                let mask = Self::last_byte_mask();
-                // we need to mask off the end bits so we don't get incorrect hashes
-                unsafe { (*self.ptr.offset(amt) | mask).hash(state); }
-            } else {
-                unsafe { (*self.ptr.offset(amt)).hash(state); }
-            }
+        for amt in 0..s-1 {
+            unsafe { (*self.ptr.offset(amt)).hash(state); }
         }
+        let mask = Self::last_byte_mask();
+        // we need to mask off the end bits so we don't get incorrect hashes
+        unsafe { (*self.ptr.offset(s-1) | mask).hash(state); }
     }
 }
 
@@ -462,11 +461,6 @@ impl<N: Unsigned> Clone for Bitboard<N> {
             ptr::copy(self.ptr as *const u64, new_bb.ptr, Self::pointer_size());
         }
         return new_bb;
-        //let new_bb : Bitboard<N> = Bitboard::new();
-        //for amt in 0..Self::pointer_size() {
-            //unsafe { *new_bb.ptr.offset(amt as isize) = *self.ptr.offset(amt as isize) }
-        //}
-        //return new_bb;
     }
 }
 
@@ -1427,6 +1421,48 @@ mod benches {
         bb1.set(18,13);
 
         bb1
+    }
+
+    mod hash {
+        use super::*;
+        use std::hash::Hash;
+        use std::collections::hash_map::DefaultHasher;
+
+        #[bench]
+        fn giant(b: &mut Bencher) {
+            let bb1 = &test::black_box(giant_board());
+            let mut h = DefaultHasher::new();
+            b.iter(|| {
+                bb1.to_owned().hash(&mut h)
+            });
+        }
+
+        #[bench]
+        fn large(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_go_board());
+            let mut h = DefaultHasher::new();
+            b.iter(|| {
+                bb1.to_owned().hash(&mut h)
+            });
+        }
+
+        #[bench]
+        fn medium(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_chess_board());
+            let mut h = DefaultHasher::new();
+            b.iter(|| {
+                bb1.to_owned().hash(&mut h)
+            });
+        }
+
+        #[bench]
+        fn small(b: &mut Bencher) {
+            let bb1 = &test::black_box(prepped_ttt_board());
+            let mut h = DefaultHasher::new();
+            b.iter(|| {
+                bb1.to_owned().hash(&mut h)
+            });
+        }
     }
 
     mod set {
