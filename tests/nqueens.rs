@@ -1,6 +1,18 @@
-//#![feature(alloc_system, global_allocator, allocator_api)]
+#![feature(alloc_system, global_allocator, allocator_api, test)]
 extern crate bitboard;
 extern crate typenum;
+
+#[cfg(test)]
+extern crate test;
+
+// SWITCH TO GLOBAL ALLOCATOR FOR VALGRIND TO WORK
+extern crate alloc_system;
+
+use alloc_system::System;
+
+#[global_allocator]
+static A: System = System;
+// END SWITCH
 
 use std::hash::Hash;
 
@@ -10,12 +22,17 @@ use typenum::marker_traits::Unsigned;
 
 use std::fmt;
 
+
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 struct Queen<N : Unsigned> {
     pos: Bitboard<N>,
     effect: Bitboard<N>
 }
 
+
+fn main() {
+    queen_solver::<U30>().unwrap().position_board();
+}
 
 impl<N : Unsigned> Queen<N> {
     // I have no idea why the coords need reversing here...
@@ -67,7 +84,6 @@ impl<N : Unsigned + Clone + PartialEq> QueenSet<N> {
     /// only inserts if the queen isn't captured
     pub fn insert(&mut self, q: Queen<N>) {
         if self.captures(&q) { return; }
-        println!("DEBUG: q.effect:\n{}\n q.position:\n{}\n", q.effect.clone(), q.pos.clone());
         self.effect |= q.effect.clone();
         self.queens.push(q);
     }
@@ -127,17 +143,15 @@ impl<N : Unsigned + Clone + PartialEq> fmt::Debug for QueenSet<N> {
 ///
 /// Notably, it does this column-major, which is 'slower' in some sense since boards are stored
 /// row-major
-fn queen_solver<N : Unsigned + Clone + Eq + Hash>() {
+fn queen_solver<N : Unsigned + Clone + Eq + Hash>() -> Option<QueenSet<N>> {
     // column-major assortment of possible queens
     let mut possible_queens : Vec<Vec<Queen<N>>> = vec![];
     let s = N::to_usize();
 
-    println!("Building bitboards");
-
     for i in 0..N::to_usize() {
         let mut v = vec![];
         for j in 0..N::to_usize() {
-            v.push(Queen::new(i,j));
+            v.push(Queen::new(j,i));
         }
         possible_queens.push(v);
     }
@@ -146,20 +160,45 @@ fn queen_solver<N : Unsigned + Clone + Eq + Hash>() {
     let mut col = 0;
 
     let mut qs = QueenSet::new();
+    let mut iters = 0;
 
     // start looking at the first square
     row_positions.push(0);
     loop {
-        let row_start : usize = row_positions.pop().unwrap();
-        for row in row_start..s {
-            println!("DEBUG: positions:\n{}\neffect:\n{}", qs.position_board(), qs.effect.clone());
+        iters += 1;
+
+        let mut row : usize = match row_positions.pop() {
+            Some(v) => v,
+            None if col == 0 => 0,
+            _ => panic!("No solution found")
+        };
+
+        loop {
+            if qs.solved() {
+                return Some(qs);
+            }
+
+            if qs.stuck() || row == s {
+                // backtrack column
+                if col > 0 {
+                    col -= 1;
+                } else {
+                    // bail out, no solutions!
+                    return None;
+                }
+                // remove that column's queen
+                qs.pop();
+
+                break;
+            }
+
             let q = &possible_queens[col][row];
 
             if !qs.captures(q) {
                 // add the queen
                 qs.insert(q.clone());
                 // remember where we left off, the square after this one
-                row_positions.push(row);
+                row_positions.push(row+1);
                 // start at 0 on the next row.
                 row_positions.push(0);
                 // advance
@@ -168,26 +207,10 @@ fn queen_solver<N : Unsigned + Clone + Eq + Hash>() {
                 break;
             }
 
-            if qs.solved() { break; }
-
-            if qs.stuck() || row + 1 == s {
-                    // backtrack column
-                    col -= 1;
-                    // start where we left off on previous row
-                    row_positions.pop();
-                    // remove that column's queen
-                    qs.pop();
-
-                    break;
-            }
+            //otherwise
+            row += 1;
         }
-
-        if qs.solved() { break; }
     }
-
-    println!("Solution to {}x{} board:\n{}", s, s, qs.position_board());
-
-    assert!(false);
 }
 
 
@@ -258,16 +281,6 @@ mod tests {
             qs.insert(Queen::new(0,0));
             qs.insert(Queen::new(1,2));
 
-            unsafe {
-                for i in 0..2 {
-                    println!("effect-ptr + {} = {:08b}", i, *qs.effect.ptr.offset(i));
-                }
-            }
-
-            println!("pos_board: {}", qs.position_board());
-            println!("effect_board: {}", qs.effect.clone());
-            println!("empty inverse: {}", !Bitboard::<U4>::new());
-
             assert_ne!(qs.effect, !Bitboard::new());
             assert!(!qs.out_of_room());
             assert!(!qs.stuck());
@@ -276,13 +289,56 @@ mod tests {
 
     }
 
-    mod test {
+    mod queen_solver {
         use super::*;
 
         #[test]
-        fn queens() {
-          //queen_solver::<U4>();
+        fn for_8x8() {
+          assert!(queen_solver::<U8>().is_some());
         }
 
+
+        //#[test]
+        // FIXME: This SIGSEGV's with an invalid mem ref. Not sure where
+        fn for_16x16() {
+          assert!(queen_solver::<U16>().is_some());
+        }
+
+        #[test]
+        fn for_4x4() {
+          assert!(queen_solver::<U4>().is_some());
+        }
+
+        #[test]
+        fn for_3x3() {
+          assert!(queen_solver::<U3>().is_none());
+        }
+
+    }
+}
+
+
+#[cfg(test)]
+#[allow(unused_must_use)]
+mod nqueens_problem {
+    use super::*;
+
+    use typenum::consts::*;
+    use test::Bencher;
+
+    #[bench]
+    fn solve_12x12(b: &mut Bencher) {
+        b.iter(|| { queen_solver::<U12>() });
+    }
+
+
+    #[bench]
+    fn solve_8x8(b: &mut Bencher) {
+        b.iter(|| { queen_solver::<U8>() });
+    }
+
+    #[bench]
+    fn solve_4x4(b: &mut Bencher) {
+        b.iter(|| { queen_solver::<U4>() });
     }
 }

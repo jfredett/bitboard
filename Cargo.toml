@@ -5,3 +5,7 @@ authors = ["Joe Fredette <jfredett@gmail.com>"]
 
 [dependencies]
 typenum = "1.9.0"
+
+[[bin]]
+name="queens"
+path="tests/nqueens.rs"
