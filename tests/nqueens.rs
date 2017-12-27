@@ -323,11 +323,6 @@ mod nqueens_problem {
     use test::Bencher;
 
     #[bench]
-    fn solve_18x18(b: &mut Bencher) {
-        b.iter(|| { queen_solver::<U18>() });
-    }
-
-    #[bench]
     fn solve_12x12(b: &mut Bencher) {
         b.iter(|| { queen_solver::<U12>() });
     }

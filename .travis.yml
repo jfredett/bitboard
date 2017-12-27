@@ -9,7 +9,8 @@ rust:
 script:
   - cargo clean
   - cargo build
-  - cargo test
+    # wait extra because some of the tests take a while
+  - travis_wait cargo test
 after_success: |
   bash <(curl https://raw.githubusercontent.com/xd009642/tarpaulin/master/travis-install.sh)
   cargo tarpaulin --ciserver travis-ci --coveralls $TRAVIS_JOB_ID
