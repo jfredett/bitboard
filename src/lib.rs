@@ -418,7 +418,6 @@ impl<N : Unsigned> fmt::Display for Bitboard<N> {
 impl<N : Unsigned> cmp::PartialEq for Bitboard<N> {
     fn eq(&self, other: &Bitboard<N>) -> bool {
         let size = Self::pointer_size() as isize;
-        let mask = Self::last_byte_mask();
         let mut s;
         let mut o;
 
@@ -430,6 +429,7 @@ impl<N : Unsigned> cmp::PartialEq for Bitboard<N> {
             if s != o { return false; }
         }
 
+        let mask = Self::last_byte_mask();
         unsafe {
             s = *self.ptr.offset(size-1);
             o = *other.ptr.offset(size-1);
