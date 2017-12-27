@@ -417,25 +417,25 @@ impl<N : Unsigned> fmt::Display for Bitboard<N> {
 
 impl<N : Unsigned> cmp::PartialEq for Bitboard<N> {
     fn eq(&self, other: &Bitboard<N>) -> bool {
-        let mut acc = true;
         let size = Self::pointer_size() as isize;
         let mask = Self::last_byte_mask();
         let mut s;
         let mut o;
 
-        // we know the sizes are the same because `N` is the same, and `A` is the same
-        for amt in 0..size {
+        for amt in 0..size-1 {
             unsafe {
                 s = *self.ptr.offset(amt);
                 o = *other.ptr.offset(amt);
-
-                acc &= s == o
-                    || ((amt + 1 == size) && ((s | mask) == (o | mask)));
-
-                if !acc { return acc; }
             }
+            if s != o { return false; }
         }
-        return acc;
+
+        unsafe {
+            s = *self.ptr.offset(size-1);
+            o = *other.ptr.offset(size-1);
+        }
+
+        return (s | mask) == (o | mask);
     }
 }
 
