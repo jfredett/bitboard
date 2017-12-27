@@ -61,6 +61,7 @@ impl<N : Unsigned> Queen<N> {
         }
     }
 
+    #[allow(dead_code)] // this is more for instructive purposes than real use. Capture happens in the queenset impl
     pub fn captures(&self, q: Queen<N>) -> bool {
         let clone = self.effect.clone();
         (clone & q.pos).any_set()
@@ -160,13 +161,10 @@ fn queen_solver<N : Unsigned + Clone + Eq + Hash>() -> Option<QueenSet<N>> {
     let mut col = 0;
 
     let mut qs = QueenSet::new();
-    let mut iters = 0;
 
     // start looking at the first square
     row_positions.push(0);
     loop {
-        iters += 1;
-
         let mut row : usize = match row_positions.pop() {
             Some(v) => v,
             None if col == 0 => 0,
@@ -218,6 +216,7 @@ fn queen_solver<N : Unsigned + Clone + Eq + Hash>() -> Option<QueenSet<N>> {
 
 
 // testing the tests!
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -297,7 +296,6 @@ mod tests {
           assert!(queen_solver::<U8>().is_some());
         }
 
-        // FIXME: This SIGSEGV's with an invalid mem ref. Not sure where
         #[test]
         fn for_16x16() {
           assert!(queen_solver::<U16>().is_some());
@@ -322,7 +320,6 @@ mod tests {
 mod nqueens_problem {
     use super::*;
 
-    use typenum::consts::*;
     use test::Bencher;
 
     #[bench]
