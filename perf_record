@@ -2,5 +2,12 @@
 
 mkdir -p perfs
 mkdir -p perfs/$(basename $1)
-perf record --output="perfs/$(basename $1)/$(date +%e-%b-%Y_%T.perf)" -g $1 --bench $2
+
+let out="perfs/$(basename $1)/$(date +%e-%b-%Y_%T.perf)"
+
+perf record --output="$out" -g $1 --bench $2
+
+echo "report by executing:"
+echo
+echo "perf report -i $out"
 
