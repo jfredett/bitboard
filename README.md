@@ -4,6 +4,9 @@ Bitboards in Rust.
 
 [![Build Status](https://travis-ci.org/jfredett/bitboard.svg?branch=master)](https://travis-ci.org/jfredett/bitboard)
 [![Coverage Status](https://coveralls.io/repos/github/jfredett/bitboard/badge.svg?branch=master)](https://coveralls.io/github/jfredett/bitboard?branch=master)
+[![crates.io](https://img.shields.io/crates/v/bitboard.svg)](https://img.shields.io/crates/v/bitboard.svg)
+[![Maintenance Status](https://img.shields.io/badge/maintenance-actively--developed-brightgreen.svg)](https://img.shields.io/badge/maintenance-actively--developed-brightgreen.svg)
+
 
 ## Summary
 
