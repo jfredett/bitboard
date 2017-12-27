@@ -2,6 +2,20 @@
 name = "bitboard"
 version = "0.1.0"
 authors = ["Joe Fredette <jfredett@gmail.com>"]
+description = "Reasonably quick, arbitrary-sized square bitboards"
+repository = "https://github.com/jfredett/bitboard"
+readme = "README.md"
+keywords = ["bitboards", "chess", "go", "boardgame"]
+categories = ["data-structures"]
+license = "MIT"
+
+[badges]
+travis-ci = { repository = "jfredett/bitboard", branch = "master" }
+coveralls = { repository = "jfredett/bitboard", branch = "master", service = "github" }
+
+maintenance = { status = "actively-developed" }
+is-it-maintained-issue-resolution = { repository = "jfredett/bitboard" }
+is-it-maintained-open-issues = { repository = "jfredett/bitboard" }
 
 [dependencies]
 typenum = "1.9.0"
