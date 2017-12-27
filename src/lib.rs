@@ -540,15 +540,10 @@ impl<N : Unsigned> ops::Not for Bitboard<N> {
 
     fn not(self) -> Bitboard<N> {
         let new_bb : Bitboard<N> = Bitboard::new();
-        let mask = Self::last_byte_mask();
 
         let s = Self::pointer_size() as isize;
-        for amt in 0..s-1 {
+        for amt in 0..s {
             unsafe { *new_bb.ptr.offset(amt) = !*self.ptr.offset(amt); }
-        }
-
-        unsafe {
-            *new_bb.ptr.offset(s-1) = (!*self.ptr.offset(s-1)) | mask;
         }
 
         return new_bb;
