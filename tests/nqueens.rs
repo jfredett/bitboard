@@ -31,7 +31,7 @@ struct Queen<N : Unsigned> {
 
 
 fn main() {
-    queen_solver::<U30>().unwrap().position_board();
+    println!("30x30 Solution:\n{}", queen_solver::<U30>().unwrap().position_board());
 }
 
 impl<N : Unsigned> Queen<N> {
