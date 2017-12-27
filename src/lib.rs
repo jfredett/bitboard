@@ -8,6 +8,7 @@ extern crate typenum;
 #[cfg(test)]
 extern crate test;
 
+use std::ptr;
 use std::mem;
 use std::ops;
 use std::hash;
@@ -457,10 +458,15 @@ impl<N : Unsigned> hash::Hash for Bitboard<N> {
 impl<N: Unsigned> Clone for Bitboard<N> {
     fn clone(&self) -> Bitboard<N> {
         let new_bb : Bitboard<N> = Bitboard::new();
-        for amt in 0..Self::pointer_size() {
-            unsafe { *new_bb.ptr.offset(amt as isize) = *self.ptr.offset(amt as isize) }
+        unsafe {
+            ptr::copy(self.ptr as *const u64, new_bb.ptr, Self::pointer_size());
         }
         return new_bb;
+        //let new_bb : Bitboard<N> = Bitboard::new();
+        //for amt in 0..Self::pointer_size() {
+            //unsafe { *new_bb.ptr.offset(amt as isize) = *self.ptr.offset(amt as isize) }
+        //}
+        //return new_bb;
     }
 }
 
