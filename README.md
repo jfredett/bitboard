@@ -19,7 +19,7 @@ This means they're very very fast.
 
 The Bitboards in this project are implemented in Rust as contiguous chunks of
 memory.  Size is statically determined via the type system (using the
-[typenum](https://crates.io/crates/typenum) library.
+[typenum](https://crates.io/crates/typenum) library).
 
 What this means practically is two things.
 
