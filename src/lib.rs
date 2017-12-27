@@ -441,7 +441,6 @@ impl<N : Unsigned> cmp::PartialEq for Bitboard<N> {
 
 impl<N : Unsigned> cmp::Eq for Bitboard<N> { }
 
-
 impl<N : Unsigned> hash::Hash for Bitboard<N> {
     fn hash<H : hash::Hasher>(&self, state: &mut H) {
         let s = Self::pointer_size() as isize;
@@ -540,19 +539,16 @@ impl<N : Unsigned> ops::Not for Bitboard<N> {
     type Output = Bitboard<N>;
 
     fn not(self) -> Bitboard<N> {
-        let new_bb : Bitboard<N> = self.clone();
+        let new_bb : Bitboard<N> = Bitboard::new();
+        let mask = Self::last_byte_mask();
 
         let s = Self::pointer_size() as isize;
-        for amt in 0..s {
-            if amt+1 == s {
-                let mask = Self::last_byte_mask();
-                unsafe {
-                    *new_bb.ptr.offset(amt) = !*self.ptr.offset(amt);
-                    *new_bb.ptr.offset(amt) |= mask;
-                }
-            } else {
-                unsafe { *new_bb.ptr.offset(amt) = !*self.ptr.offset(amt); }
-            }
+        for amt in 0..s-1 {
+            unsafe { *new_bb.ptr.offset(amt) = !*self.ptr.offset(amt); }
+        }
+
+        unsafe {
+            *new_bb.ptr.offset(s-1) = (!*self.ptr.offset(s-1)) | mask;
         }
 
         return new_bb;
