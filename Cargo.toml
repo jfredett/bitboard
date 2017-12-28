@@ -1,6 +1,6 @@
 [package]
 name = "bitboard"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Joe Fredette <jfredett@gmail.com>"]
 description = "Reasonably quick, arbitrary-sized square bitboards"
 repository = "https://github.com/jfredett/bitboard"

@@ -18,6 +18,7 @@ use std::marker::PhantomData;
 use std::heap::{Alloc, Layout, Heap};
 
 use typenum::marker_traits::*;
+pub use typenum::consts::*;
 
 
 /// A square bitboard of size `NxN`, with alignment `A`
