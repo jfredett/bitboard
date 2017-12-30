@@ -556,8 +556,6 @@ impl<N : Unsigned> ops::Not for Bitboard<N> {
 mod tests {
     use super::*;
 
-    use typenum::consts::*;
-
     fn tic_tac_toe_board() -> Bitboard<U3> { Bitboard::new() }
     fn chess_board() -> Bitboard<U8> { Bitboard::new() }
     fn go_board() -> Bitboard<U19> { Bitboard::new() }
@@ -1358,7 +1356,6 @@ mod tests {
 mod benches {
     use super::*;
 
-    use typenum::consts::*;
     use test::Bencher;
 
     fn tic_tac_toe_board() -> Bitboard<U3> { Bitboard::new() }
